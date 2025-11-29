@@ -2,14 +2,14 @@
 
 Summary
 -------
-This PR has added a synchronous class called `CalendarScheduler` which is a class that handels all the logic and is badly designed it has no logging or error handeling, hardcoded secrets and all around bad coding practices(bad parsing, bad formatting...) and a fake `Api` controller with no validations, no async and no return of status code(Ok, Bad Request..). There is high security and reliability issues int this PR. The existing `GoogleCalendarExporter` and `EventExpander` are good functionally but additional tests are needed.
+This PR has added a synchronous class called `CalendarScheduler` which is a class that handels all the logic and is badly designed it has no logging or error handling, hardcoded secrets and all around bad coding practices(bad parsing, bad formatting...) and a fake `Api` controller with no validations, no async and no return of status code(Ok, Bad Request..). There is high security and reliability issues int this PR. The existing `GoogleCalendarExporter` and `EventExpander` are good functionally but additional tests are needed.
 
 Key Risks:
 ---------
 - Secret exposure: hardcoded token in `CalendarScheduler` GoogleToken and hardcoded CalendarId.
 - `CalendarScheduler` is God class: handles parsing, recurrence, HTTP calls, storage, and scheduling all in one method.
 - Calls in `CalendarScheduler` and `Api` are synchronous this will lead to deadlocks and single thread issues.
-- Incorrect date time handling and paring inside the function `Schedule()`. (DateTime.Parse)
+- Incorrect date time handling and parsing inside the function `Schedule()`. (DateTime.Parse)
 - Public static `eventsList` and `HttpClient` are not thread-safe and hurt testability one is mutable the other one is a global client.
 - No input validation or API safety in `Api` `PostSchedule` has no checks or any REST API path.
 - Limited logs or retry behavior for network/errors.
@@ -21,7 +21,7 @@ Must-fix:
 - Hardcoded token in `CalendarScheduler` GoogleToken. Remove hardcoded token and calendar ID, inject via configuration or secret manager.
 - Break up CalendarScheduler into smaller responsibilitie implement interfaces and dependency injection.
 - Make function calls in `CalendarScheduler` and `Api` change to async current code can deadlock and block threads.
-- Schedule() currently always returns `"ok"`, needes to add error handeling and logging in console.
+- Schedule() currently always returns `"ok"`, needs to add error handling and logging in console.
 - Remove public statics from `eventsList` and `HttpClient` and make `HttpClient` injected(dependency injection) this will solve the thread-safe and testability issues.
 - Fix incorrect datetime format and timezone handling.
 - No input validation for `Api` PostSchedule, make Api controller and add route with validations and return of status code.
@@ -35,18 +35,19 @@ Follow-ups:
 - Add handling for duplicate submits (operation id or client-supplied id).
 - Add check of secret to CI by scanning.
 - Add tests for replayed HTTP fixtures for Google Calendar API.
-- Improve decoupling and design principles, such as SOLID. In future iterations, use the Repository and Service patterns to separate persistence and business logic.
-- Improve error handeling.
+- Improve decoupling and design principles, such as SOLID. 
+- In future iterations, use the Repository and Service patterns to persiste and separate business logic.
+- Improve error handling.
 - Improve API safety and validation for all endpoints.
 - Stray away from classes and functions that do everything.
 
 Safe rollout plan:
 ---------
 1. Block merging until hardcoded tokens are removed and tests pass locally.
-2. Implement fixes for blocking I/O and error handeling, add unit tests.
+2. Implement fixes for blocking I/O and error handling, add unit tests.
 3. Observe logs(events, call of functions, return codes from Api...)
 3. Add flag for WIP in merge.
-4. If exists chechk CI/CD pipes.
+4. If exists check CI/CD pipes.
 4. If any failures are observed, disable exporter and investigate.
 
 Inline comments and their problems:
@@ -78,6 +79,8 @@ Proposed remediation path (step-by-step):
 *   **Refactored CalendarScheduler** – split responsibilities: scheduling logic, expansion (EventExpander), exporting (GoogleCalendarExporter), and persistence (IEventRepository).
     
 *   **Made all operations async** – eliminated synchronous HTTP calls to prevent deadlocks.
+
+*   **Dependency Injection** – added dependency injection to CalendarScheduler.
     
 *   **Replaced static mutable state** – removed eventsList and global HttpClient; now use injected repository and HttpClient.
     
